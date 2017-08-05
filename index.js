@@ -52,6 +52,7 @@ function convertKeyNames(obj) {
 }
 
 const propExists = prop => prop.length;
+const addMedia = key => `@media ${key}`;
 
 function mungeRules(rules) {
   const rulesArr = [];
@@ -67,7 +68,10 @@ function mungeRules(rules) {
           selectors.map(s => ({[s]:ruleObj})).forEach(r => rulesArr.push(r));
         }
       } else if(type === 'media') {
-        rulesArr.concat(mungeRules(rule.rules));
+        const key = addMedia(rule.media);
+        rulesArr.push({
+          [key]: mungeRules(rule.rules)
+        });
       } else {
         console.error('Type of ' + type + ' did not conform to media or rule \n', rule);
       }
@@ -89,17 +93,25 @@ function cssToJson(string) {
   }
 }
 
+const isMedia = key => /^\@/.test(key);
+
+const camelizeArray = arr => arr.map(obj => {
+  const key = Object.keys(obj)[0];
+  if(isMedia(key)) {
+    console.log('obj[key]', key)
+    return {[key]:camelizeArray(obj[key])};
+  }
+  return {
+    [key]: camelize(obj[key])
+  }
+})
+
 function cssToCamelizedJson(string) {
   if (!isString(string)) {
     throw new Error('cssToCamelizedJson needs a valid css string to convert');
   }
   const json = cssToJson(string);
-  return json.map(obj => {
-    const key = Object.keys(obj)[0];
-    return {
-      [key]: camelize(obj[key])
-    }
-  });
+  return camelizeArray(json);
 }
 
 module.exports = {
